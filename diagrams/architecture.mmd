@@ -1,0 +1,30 @@
+flowchart TB
+    INTERNET(["Internet / WAN"])
+
+    subgraph PF["pfSense 2.9.0 - Firewall / Router / NIDS (Suricata)"]
+        WAN["WAN - em0 - NAT"]
+        LANI["LAN - em1 - 10.10.10.1"]
+        OPT1I["OPT1 - em2 - 10.10.20.1"]
+        OPT2I["OPT2 - em3 - 10.10.30.1"]
+    end
+
+    subgraph ATK["ATTACK ZONE - 10.10.10.0/24"]
+        KALI["Kali Linux<br/>10.10.10.100<br/>nmap / hydra / sqlmap"]
+    end
+
+    subgraph DMZ["DMZ - 10.10.20.0/24"]
+        UBU["Ubuntu Target - 10.10.20.100<br/>DVWA (80) + SSH (22) + Cowrie (2222)<br/>Wazuh agent (HIDS)"]
+    end
+
+    subgraph SOC["SOC ZONE - 10.10.30.0/24"]
+        WZH["Wazuh 4.14.9 SIEM<br/>10.10.30.100<br/>Manager + Indexer + Dashboard"]
+    end
+
+    INTERNET --- WAN
+    KALI --- LANI
+    UBU --- OPT1I
+    WZH --- OPT2I
+
+    KALI -- "attack (allowed)" --> UBU
+    UBU -- "agent logs 1514/1515 (allowed)" --> WZH
+    KALI -. "attack to SOC (BLOCKED)" .-> WZH
