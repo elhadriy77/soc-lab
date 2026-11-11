@@ -41,6 +41,8 @@ The segmentation is only real if the firewall enforces it. We wrote the rules so
 
 We tested the policy before trusting it: from Kali, `10.10.20.100` (the DMZ target) answers while `10.10.30.100` (the SOC) times out, and the pfSense firewall log shows the block. The attacker is observed without being able to touch what observes it.
 
+![Firewall zone policy](captures/firewall_zone_policy.png)
+
 ## Detection stack
 
 Detection is built in two complementary layers, which is how a real SOC is structured.
@@ -51,6 +53,10 @@ Detection is built in two complementary layers, which is how a real SOC is struc
 
 Host-level and network-level visibility feed a single SIEM that turns raw logs into MITRE-mapped alerts.
 
+The agent on the target enrolls into the manager and reports as active:
+
+![Wazuh agent active](captures/wazuh_agent_active.png)
+
 ## Attack scenarios (Purple Team)
 
 Purple Team means we play both sides: we run the attack (red) and we check the detection (blue). Each scenario is executed from the Attack zone, then found again from the SIEM. The proof screenshots are in `captures/`.
@@ -59,13 +65,23 @@ Purple Team means we play both sides: we run the attack (red) and we check the d
 
 We ran a service scan from Kali against the target (`nmap -sV`). A port scan is the first thing an attacker does: it maps which services are open before choosing how to get in. Suricata picked up the scan and the alert reached the Wazuh dashboard. MITRE: T1595 — Active Scanning.
 
+![nmap scan from Kali](captures/scenario1_nmap.png)
+
+![Scan detected in Wazuh (Suricata)](captures/scenario1_wazuh_suricata.png)
+
 ### 2. SSH brute force — hydra + Cowrie (detected)
 
 We threw a dictionary of passwords at the SSH service with hydra. Brute force is the attempt to guess credentials by trying many of them in a row. The Wazuh agent read the authentication log and the manager raised the brute-force alert, with the repeated failed logins visible in the dashboard. MITRE: T1110 — Brute Force.
 
+![hydra brute force from Kali](captures/scenario2_hydra_bruteforce.png)
+
+![Brute force detected and mapped to MITRE in Wazuh](captures/scenario2_wazuh_mitre.png)
+
 ### 3. SQL injection — DVWA + sqlmap (in progress)
 
 We ran sqlmap against the DVWA injection point (`?id=1`). SQL injection abuses an input that is concatenated straight into a database query, letting the attacker read data that is not theirs. The attack itself works — sqlmap dumps the database. The detection side is still being finished: the generic Suricata SQLi signatures are deprecated, so a dedicated rule is being written and validated. The real detection capture will be added once it fires. MITRE: T1190 — Exploit Public-Facing Application.
+
+![sqlmap against DVWA](captures/scenario3_sqlmap.png)
 
 ## Future work
 
